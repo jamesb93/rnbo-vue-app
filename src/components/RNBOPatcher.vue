@@ -1,9 +1,13 @@
 <template>
-    <div>
+    <div class="rnbo-patcher">
         <div v-if="!isStarted">
             <button @click="startAudio" :disabled="isStarted">Start Audio</button>
         </div>
-        <div v-if="isStarted">
+        <div v-if="isStarted" class="content">
+            <div class="revoice-toggle">
+                <input id="revoice" type="checkbox" v-model="isRandomRevoicingEnabled">
+                <label for="revoice">Randomise Revoicing</label>
+            </div>
             <div class="chord-grid-container">
                 <div class="chord-grid">
                     <button v-for="(chord, index) in chords" :key="index" @click="selectChord(index)"
@@ -33,6 +37,7 @@ export default {
     setup() {
         const patcherContainer = ref(null);
         const isStarted = ref(false);
+        const isRandomRevoicingEnabled = ref(false);
         let device;
         let context;
 
@@ -110,10 +115,31 @@ export default {
             }
         };
 
+        const randomRevoicing = (chord, minOctave = 3, maxOctave = 5) => {
+            if (!Array.isArray(chord) || chord.some(note => typeof note !== 'number')) {
+                throw new Error('Input must be an array of MIDI note numbers');
+            }
+
+            const pitchClasses = chord.map(note => note % 12);
+            const uniquePitchClasses = [...new Set(pitchClasses)];
+
+            const revoicedChord = uniquePitchClasses.map(pitchClass => {
+                const octave = Math.floor(Math.random() * (maxOctave - minOctave + 1)) + minOctave;
+                return pitchClass + (octave * 12);
+            });
+
+            return revoicedChord.sort((a, b) => a - b);
+        };
+
         const selectChord = (chordIndex) => {
             if (device && isStarted.value) {
                 previousShapePoints.value = [...shapePoints.value];
-                const chord = chords[chordIndex];
+                let chord = chords[chordIndex];
+
+                if (isRandomRevoicingEnabled.value) {
+                    chord = randomRevoicing(chord);
+                }
+
                 currentChord.value = chord;
                 transition.value = 0;
                 gsap.to(transition, {
@@ -137,30 +163,49 @@ export default {
             svgHeight,
             interpolatedPoints,
             interpolatedPolygonPoints,
+            isRandomRevoicingEnabled,
         };
     }
 }
 </script>
 
 <style scoped>
-.chord-grid-container {
+.rnbo-patcher {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.revoice-toggle {
+    margin-bottom: 10px;
+    align-self: flex-start;
+}
+
+.chord-grid-container {
+    width: 100%;
+    margin-bottom: 20px;
 }
 
 .chord-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
-    margin-top: 10px;
-    margin-bottom: 20px;
-    max-width: 300px;
+    width: 100%;
 }
 
 .chord-button {
-    width: 60px;
-    height: 60px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
     border: 2px solid #007bff;
     background-color: #f8f9fa;
     border-radius: 5px;
@@ -173,8 +218,11 @@ export default {
 }
 
 .visualization {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
+    width: 100%;
+}
+
+.visualization svg {
+    width: 100%;
+    height: auto;
 }
 </style>
