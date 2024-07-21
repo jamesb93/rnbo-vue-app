@@ -71,13 +71,14 @@ export default {
             if (chord.length === 0) return [];
 
             const angleStep = (2 * Math.PI) / chord.length;
-            const radius = Math.min(svgWidth, svgHeight) / 2 - 50;
+            const maxRadius = Math.min(svgWidth, svgHeight) / 1.9 - 10; // Use almost the full width/height
 
             return chord.map((note, index) => {
                 const angle = index * angleStep - Math.PI / 2; // Start from top
-                const distanceFromCenter = ((note - lowestNote.value) / (highestNote.value - lowestNote.value)) * radius;
-                const x = centerX + distanceFromCenter * Math.cos(angle);
-                const y = centerY + distanceFromCenter * Math.sin(angle);
+                const normalizedNote = (note - lowestNote.value) / (highestNote.value - lowestNote.value);
+                const radius = maxRadius * (0.3 + 0.7 * normalizedNote); // Ensure a minimum size of 30% of maxRadius
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
                 return { x, y };
             });
         };
@@ -208,7 +209,7 @@ export default {
     aspect-ratio: 1 / 1;
     border: 2px solid #007bff;
     background-color: #f8f9fa;
-    border-radius: 5px;
+    border-radius: 0px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
